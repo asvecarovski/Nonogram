@@ -1,0 +1,352 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[croatian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}  
+\usepackage{tikz}
+\usepackage[colorlinks=true, linkcolor=blue, urlcolor=red]{hyperref}
+\usepackage{cite}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage[style=alphabetic,backend=bibtex]{biblatex}
+\addbibresource{biblioteka.bib}
+
+
+\title{\Huge Nonogram}
+\author{
+Anja Svećarovski, JMBAG 0145027237 (odgovorna osoba)\\
+Lana Kohut, JMBAG 0009069158 \\
+Daniel Katić, JMBAG 0303123347
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+\clearpage
+    
+\tableofcontents
+\clearpage
+    
+\section{Uvod}
+Nonogrami, također poznati kao Hanjie, Paint by Numbers, Picross, Griddlers i Pic-a-Pix, te pod raznim drugim imenima, slikovne su logičke zagonetke u kojima ćelije u mreži moraju biti obojene ili ostavljene praznima prema brojevima sa strane kako bi se otkrila skrivena slika nalik pikselnoj umjetnosti. U ovoj vrsti slagalice, brojevi su oblik diskretne tomografije koja mjeri koliko neprekinutih linija popunjenih kvadrata ima u bilo kojem retku ili stupcu. Na primjer, trag "4 8 3" bi značio da postoje skupovi od četiri, osam i tri ispunjena kvadrata, tim redoslijedom, s najmanje jednim praznim kvadratom između uzastopnih skupova.
+
+Nonogrami nisu samo zabavni, već i izvrstan alat za razvijanje kritičkog razmišljanja, što ih čini idealnim kandidatom za analizu u obrazovnim kontekstima\cite{knjiga2}.
+
+\subsection{Sažetak teme}
+Nonogrami su logički problemi u kojima se koriste brojevi kako bi se rješavao uzorak unutar mreže. Brojevi prikazani s vanjske strane pokazuju koliko je ćelija ispunjenih u tom retku/stupcu. Više brojeva označava da postoji barem jedan prazan kvadrat između.
+
+Brojevi u Nonogramima mogu se smatrati ograničenjima koja oblikuju prostor rješenja, što je koncept koji Michalewicz analizira kao temeljni dio logičkih zagonetki\cite{knjiga2}.
+
+\subsection{Ciljevi projekta}
+Cilj ovog projekta je:
+\begin{itemize}
+    \item Razviti algoritam za rješavanje Nonograma koristeći propozicijsku logiku i teoriju skupova.
+    \item Vizualizirati proces rješavanja i prikazati konačna rješenja.
+    \item Analizirati dobivene rezultate s obzirom na efikasnost i točnost algoritma.
+\end{itemize}
+Teorija skupova omogućuje formalno modeliranje mogućih rješenja logičkih zagonetki, što je osnova algoritamskog pristupa koji se koristi u ovom projektu. Rosen objašnjava kako se koncepti diskretne matematike, poput skupova i relacija, mogu koristiti za rješavanje problema optimizacije i logike, što je u središtu ovog projekta\cite{knjiga1}.
+
+\subsection{Očekivani ishod}
+Rezultat projekta bit će funkcionalni algoritam za rješavanje Nonograma, detaljna analiza rješenja te dokumentacija metodologije korištene u razvoju.
+
+\section{Strategije rješavanja}
+U ovoj sekciji opisujemo metodološki pristup korišten u razvoju i analizi Nonograma. Cilj je predstaviti korake koje smo poduzeli kako bismo dizajnirali, riješili i evaluirali Nonograme, uz detaljan pregled tehnika korištenih u svakoj fazi procesa.
+
+Michalewicz opisuje kako sistematizacija rješavanja problema, poput razbijanja složenih zadataka na jednostavnije korake, može značajno poboljšati razumijevanje i rješavanje zagonetki \cite{knjiga2}.
+
+\subsection{Definiranje varijabli}
+Nonogram se sastoji od mreže kvadrata, gdje svaki kvadrat može biti popunjen ili prazan. U našem modelu koristimo logičke varijable kako bismo prikazali stanje pojedinih kvadrata:
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Logička vrijednost & Značenje & Prikaz \\
+        \hline
+        $\top$ (True)  & Kvadrat je popunjen & $\blacksquare$ \\
+        $\bot$ (False) & Kvadrat je prazan & . \\
+        \hline
+    \end{tabular}
+    \caption{Prikaz logičkih vrijednosti u modelu Nonograma}
+    \label{tab:logicke-vrijednosti}
+\end{table}
+
+Svaki kvadrat u mreži modeliramo varijablom $x_{L}$, gdje:
+\begin{itemize}
+    \item $x_{L}$ označava kvadrat u retku ili stupcu duljine L
+    \item $x_{L} = \top$ ako je kvadrat popunjen
+    \item $x_{L} = \bot$ ako je kvadrat prazan
+\end{itemize}
+
+Ovo možemo formalizirati kao:
+
+\[
+    x_{L} =
+    \begin{cases} 
+        \top, & \text{ako je kvadrat na poziciji } (L) \text{ popunjen} \\
+        \bot, & \text{ako je kvadrat na poziciji } (L) \text{ prazan}
+    \end{cases}
+\]
+\clearpage
+Svaki redak i stupac imaju pridružene brojeve (tragove) koji definiraju uzastopne sekvence popunjenih kvadrata.
+\begin{itemize}
+    \item $n_1, n_2, n_3$ su brojevi koji označavaju duljine uzastopnih popunjenih kvadrata
+    \item Svaka sekvenca popunjenih kvadrata mora biti odvojena barem jednim praznim kvadratom
+\end{itemize}
+
+Budući da smo ograničili mrežu na dimenzije $5\times5$, u svakom retku i stupcu može postojati najviše 3 traga $(n_1, n_2, n_3)$, jer veće sekvence ne bi stale unutar pet kvadrata.
+\\
+
+Prema pravilima Nonograma, između svake dvije popunjene sekvence mora postojati barem jedno prazno polje ($r$). 
+To znači da ako imamo dvije sekvence popunjenih kvadrata $n_1$ i $n_2$, tada između njih mora postojati barem jedno prazno polje ($r$):
+
+\[
+    \underbrace{\blacksquare \blacksquare}_{n_1} \quad \underbrace{.}_{r} \quad \underbrace{\blacksquare \blacksquare \blacksquare}_{n_2}
+\]
+\\
+
+Uvodimo također i skupove $S_i$, gdje svaki skup $S_i$ predstavlja skup kvadrata koji su popunjeni kada se sekvenca smjesti na i-tom mogućem položaju. 
+Budući da postoji više mogućih položaja za istu sekvencu, skupovi $S_1, \dots ,S_m$ predstavljaju sve moguće načine smještanja sekvence unutar retka ili stupca.
+
+Ova pravila omogućuju precizno definiranje uvjeta za rješavanje Nonograma i postavljanje strategija za njegovo rješavanje koje ćemo definirati u nastavku.
+
+
+\subsection{Potpuna popuna}
+Kada broj uz redak ili stupac odgovara duljini retka/stupca, svi kvadrati se popunjavaju.\\
+Što također možemo napisati da kada broj ispunjenih kvadrata n u opisu retka ili stupca odgovara duljini L tog retka ili stupca, svi kvadrati u njemu moraju biti popunjeni.\\
+Ako su kvadrati u retku označeni s $x_1, x_2, \dots, x_L$, tada vrijedi:
+\begin{center}
+$x_1 \land x_2 \land \ldots \land x_L = \top$
+\end{center}
+\clearpage
+Koraci za primjenu:
+\begin{enumerate}
+    \item Provjeri svaki redak i stupac u mreži.
+    \item Ako je $n = L$ onda označi sve kvadrate u tom retku ili stupcu kao popunjene ($\top$).
+    \item Nastavi s drugim redovima/stupcima dok ne prođeš cijelu mrežu.
+\end{enumerate}
+
+Primjer: Veličina mreže nam je 5. I ako imamo $n=5$ to znači da nam sva polja moraju biti spremljena  kao $\top$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{potpuna popuna.JPG}
+\caption{Strategija Potpuna popuna}
+\end{figure}
+
+\subsection{Segmentacija}
+Ostavlja se prazan prostor između sekvenci kako bi se osigurala pravilna raspodjela.\\
+Duljina retka/stupca L se uspoređuje sa duljinom sekvence n i praznim poljem između sekvenci. Između sekvenci mora postojati barem jedan prazan kvadrat.\\
+Ukupna duljina opisa: $n_1 + r + n_2 + r + n_3$ se uspoređuje s ukupnom duljinom retka/stupca L i ukoliko su jednake, popunjavaju se puna i prazna polja.
+\clearpage
+Koraci za primjenu:
+\begin{enumerate}
+    \item Analiziraj opis i identificiraj duljine sekvenci $n_1 \dots n_3$
+    \item Osiguraj minimalne razmake između sekvenci:
+    \begin{enumerate}
+        \item Dodaj $r = 1$ prazan kvadrat između svake sekvence.
+    \end{enumerate}
+    \item Popuni kvadrate prema minimalnim zahtjevima opisa.
+\end{enumerate}
+Primjer: Veličina mreže nam je 5. I ako imamo 2,2 to znači da imamo 
+\begin{center}
+2 + 1 + 2\\
+($n_1 + r + n_2$)
+\end{center}
+Što znači da ovom provjerom imamo popunjen cijeli red/stupac sa jednim praznim mjestom između njih. Puna polja označavamo sa $\top$ a prazno polje sa $\bot$ (tako da znamo da je to provjereno i sigurno prazno polje).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{segmentacija.JPG}
+\caption{Strategija Segmentacija}
+\end{figure}
+\clearpage
+\subsection{Identifikacija zajamčenih ispunjenja}
+Svaka sekvenca duljine n mora zauzeti n uzastopnih kvadrata. Budući da je veličina retka (ili stupca) 
+L, početna pozicija sekvence može varirati od 1 do L - n + 1. To znači da postoji više mogućih načina smještanja sekvence unutar retka ili stupca, uzimajuči u obzir da se kvadrati popunjavaju uzastopno ovisno o tragu n i da moramo imati 1 slobodno mjesto ako imamo dva traga.
+
+Uvodimo skupove $S_i$, gdje svaki skup $S_i$ predstavlja skup kvadrata koji su popunjeni kada se sekvenca smjesti na i-tom mogućem položaju. To nam označava različite kombinacije položaja tragova.
+
+Ukoliko ukupna duljina sekvence zajedno sa zajamčenim praznim mjestom nije ista duljini retka ili stupca, postoji više mogućih položaja za istu sekvencu, skupovi $S_1, \dots ,S_m$ predstavljaju sve moguće načine smještanja sekvence unutar retka ili stupca.
+
+Ako postoji više mogućih položaja sekvence, kvadrati koji se nalaze u preklapanju svih mogućih položaja su zajamčeno popunjeni. Taj zajamčeno popunjeni skup kvadrata $P$ dobivamo kao presjek svih kombinacija $S_i$:
+\begin{center}
+$P = \bigcap_{i=1}^{m} S_i$
+\end{center}
+gdje su $S_i$ skupovi mogućih položaja sekvence, a P je skup zajamčeno popunjenih kvadrata.\\\\
+Koraci za primjenu:
+\begin{enumerate}
+    \item Identificiraj sve moguće položaje sekvence unutar retka ili stupca (izračun privremenih skupova $S_1, \dots ,S_m$)
+    \item Pronađi preklapanje između svih mogućih položaja.
+    \item Označi preklapajuće kvadrate kao popunjene $\top$.
+\end{enumerate}
+
+Primjer: Veličina mreže nam je 5. I ako imamo tragove $n = (2,1)$ to znači da nam mogu biti sljedeća moguća rješenja (skupovi $S_1, S_2 ,S_3$):
+
+\newcommand{\circledtop}{\tikz[baseline]{\node[draw, circle, inner sep=1pt] {\(\top\)};}}
+\begin{center}
+$S_1 = [\top, \circledtop, \bot, \top, \bot]$\\
+ili\\
+$S_2 = [\top, \circledtop, \bot, \bot, \top]$\\
+ili\\
+$S_3 = [\bot, \circledtop, \top, \bot, \top]$
+\end{center}
+
+Vidimo da je druga pozicija uvijek popunjena u svim mogućim rješenjima (skupovi kombinacija), što znači da je zajamčeno popunjena, dok ostale pozicije ovise o specifičnoj instanci rješenja.h
+\\
+
+Gornje rješenje može se napraviti petljom, ali mi ćemo koristiti posebnu Python biblioteku itertools.combinations(iterable, r). Generira sve moguće kombinacije duljine r od elemenata u iterable, bez ponavljanja elemenata.
+\\
+Python Itertools je biblioteka u Pythonu koja se sastoji od više metoda koje se koriste u različitim iteratorima za izračunavanje brzog i kodnog učinkovitog rješenja.
+
+\lstset{
+    language=Python,            % Jezik programiranja
+    basicstyle=\ttfamily,       % Osnovni stil fonta
+    keywordstyle=\color{blue},  % Stil za ključne riječi
+    stringstyle=\color{red},    % Stil za stringove
+    commentstyle=\color{gray},  % Stil za komentare
+    breaklines=true,            % Automatsko prelamanje linija
+}
+
+\begin{lstlisting}
+kombinacije = []
+for raspodjela in itertools.combinations(range(duljina - trag[0] + 1), 1):
+    mreza = [False] * duljina
+    for i in raspodjela:
+        for j in range(trag[0]):
+        mreza[i + j] = True
+    kombinacije.append(mreza)
+return kombinacije
+\end{lstlisting}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{zajamcena ispunjenja.JPG}
+\caption{Strategija Identifikacije zajamčenih ispunjenja}
+\end{figure}
+\clearpage
+\subsection{Označavanje praznih kvadrata} 
+S prijašnjim smo strategijama već popunili dijelove mreže ovisno o sekvenci (tragovima), međutim pošto provjeravamo posebno redove i stupce, može nam se desiti da imamo rješenje ali nemamo korak do njega.\\
+Čovjek u glavi lakše primjenjuje sve ove strategije i zapravo ih koristimo u isto vrijeme, ali za definirati korake u Python kodu odlučili smo dodati korak označavanja praznih kvadrata kako bismo iskoristili informacije koje su nam dostupne u trenutnoj verziji mreže kako bismo označili sigurno prazne kvadrate.
+
+Ako je sekvenca $n$ već ispunjena unutar određenih granica, preostale pozicije izvan tih granica su prazne. 
+\\
+
+Koraci za primjenu:
+\begin{enumerate}
+    \item Ako trag $n$ zauzima maksimalnu moguću duljinu u retku/stupcu: označavamo sve kvadrate prije početka i nakon kraja sekvence kao $\bot$.
+    \item Ako tragovi $n = [n_1, n_2]$ zahtijevaju dvije sekvence ispunjenih kvadrata s razmakom između njih, prazni kvadrati se mogu odrediti prema udaljenosti između već ispunjenih dijelova:
+    \begin{enumerate}
+        \item Ako su $n_1$ i $n_2$ već $\top$, sve ostale pozicije su $\bot$.
+    \end{enumerate}
+    \item Ako trag $n$ nije u potpunosti ispunjen, ali su poznati njegovi dijelovi, označavamo prazne kvadrate prije i poslije poznate sekvence, ako su ti kvadrati izvan granica mogućeg dosega.
+\end{enumerate}
+
+Primjer:
+Pretpostavimo da imamo trag $n = 3$, a mreža duljine $L=5$ izgleda ovako:
+\[
+[\top, \top, \top, \_, \_]
+\]
+Budući da je trag duljine 3 već ispunjen, svi preostali kvadrati moraju biti prazni:
+\[
+[\top, \top, \top, \bot, \bot]
+\]
+\clearpage
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{prazni kvadrati.JPG}
+\caption{Strategija Označavanje praznih kvadrata}
+\end{figure}
+
+\subsection{Provjera granica}  
+Provjera granica odnosi se na označavanje kvadrata kao pune kada imamo već ispunjene neke kvadrate ali nisu uzastopni i označavanju praznih kada sekvenca ne može doseći određene kvadrate unutar retka ili stupca. Granice sekvence definiraju sve moguće pozicije koje sekvenca može zauzeti unutar mreže duljine $L$. 
+
+\paragraph{Koraci za primjenu:}  
+\begin{enumerate}
+    \item Obrada redaka i stupca
+    \begin{enumerate}
+        \item Prvo se pronalaze sve već popunjene ($\top$) i prazne ($\bot$) ćelije.
+        \item Ako trag sadrži samo jedan segment, popunjavaju se sve ćelije unutar njegovih granica.
+        \item Ako trag sadrži više segmenata, popunjene ćelije se ne spajaju, ali se prazne ćelije označavaju na granicama. 
+    \end{enumerate}
+    \item Prijenos informacija između redaka i stupaca 
+    \begin{enumerate}
+        \item Nakon što je red riješen - ako su svi njegovi tragovi potvrđeni, koristi se za ažuriranje pripadajućih stupaca.
+        \item Popunjene ćelije u stupcima ažuriraju redove prema pravilima traga.
+    \end{enumerate}
+\end{enumerate}
+
+Primjer:  
+Razmatramo sekvencu $n = 3$ unutar retka duljine $L = 5$. Ako su kvadrati $x_2, x_4$ već popunjeni ($\top$), onda se kvadrat $x_3$ također popunjava jer moramo imati 3 uzastopno popunjena kvadrata , a kvadrati $p_1$ i $p_5$ označeni kao prazni ($\bot$), jer se sekvenca ne može proširiti na te pozicije.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{provjera granica.JPG}
+\caption{Strategija Provjere granica}
+\end{figure}
+
+\subsection{Kombiniranje informacija}  
+Ova strategija koristi dostupne informacije unutar retka ili stupca kako bi se završilo popunjavanje mreže. Ključni cilj je usporediti trenutno poznate popunjene kvadrate ($\top$) s tragovima koji definiraju raspored popunjenih polja te ažurirati nepoznata polja u skladu s pravilima igre.
+Ovo je zadnji korak koji "popunjava rupe" jer smo u prethodnim koracima definirali okvire.
+ 
+Koraci za primjenu:
+\begin{enumerate}
+    \item Za svaki redak:
+    \begin{itemize}
+        \item Prebrojati već označene $\top$ vrijednosti.
+        \item Ako odgovaraju zbroju tragova $n$, označiti preostala nepoznata polja kao prazna ($\bot$).
+        \item Ako su manji od ukupnog broja tragova, preostala nepoznata polja postupno označiti kao $\top$ dok se ne dostigne potrebna količina.
+    \end{itemize}
+    \item Ponoviti isti postupak za svaki stupac.
+\end{enumerate}
+
+\paragraph{Primjer}  
+
+Za mrežu veličine $L=5$ s tragom $n=2,1$, pretpostavimo sljedeće trenutno stanje:
+
+\begin{center}
+[$?$, $\top$, $\bot$, $\top$, $\bot$]
+\end{center}
+
+\noindent
+\begin{itemize}
+    \item Broj označenih $\top$ vrijednosti je $2$.
+    \item Trag zahtijeva ukupno $3$ popunjena polja $\top$.
+    \item Polje sadrži $2$ prazna polja $\bot$
+    \item Preostalo nepoznato polje može se označiti kao $\top$.
+\end{itemize}
+
+Ova pravila se iterativno primjenjuju kako bi se mreža postupno popunjavala na temelju poznatih informacija.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{kombiniranje informacija.JPG}
+\caption{Strategija Kombiniranja informacija}
+\end{figure}
+
+\clearpage
+
+\section{Zaključak}
+Nonogrami nisu samo zabavne slagalice, već i primjer primjene logičkog zaključivanja i diskretne matematike u stvarnim problemima. Projekt pokazuje kako se matematički principi mogu intuitivno koristiti za rješavanje problema. Nadalje, istraživanje ovih metoda može se proširiti na druge logičke igre ili čak na područja kao što su optimizacija i računalna znanost. Kroz ovaj projekt, stječemo dublje razumijevanje logike i njezine praktične primjene, ističući važnost strukturiranog i analitičkog razmišljanja.
+
+Ovaj projekt demonstrira kako se diskretna matematika, prema Rosenu, može koristiti za modeliranje i rješavanje problema koristeći formalne metode, čineći zagonetke poput Nonograma korisnim primjerima matematičkog pristupa problemima\cite{knjiga1}.
+\clearpage
+
+
+\section{Prilozi}
+\begin{enumerate}
+    \item Infografika (vizualni prikaz strategija)
+    \item Python kod
+    \item Finalan poster
+\end{enumerate}
+
+
+\clearpage
+\section{Literatura}
+\printbibliography[heading=none]
+
+
+\end{document}
