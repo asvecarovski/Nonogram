@@ -20,3 +20,4 @@ Ovaj projekt je licenciran pod [MIT licencom](https://opensource.org/licenses/MI
 
 ## Status projekta
 Završeno
+https://gitlab2.unipu.hr/logicsquad/nonogram
